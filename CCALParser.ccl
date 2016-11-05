@@ -246,10 +246,17 @@ void Expression() : {} {
     | ExpressionPrime()
 }
 
+void FragExprPrime() : {} {
+
+    <ID> (
+        <LBR> ArgumentList() <RBR>
+        | ExpressionPrime()
+    )
+}
+
 void Fragment() : {} {
 
-    <ID>
-    | <MINUS_SIGN> <ID>
+    <MINUS_SIGN> <ID>
     | <NUM>
     | <TRUE>
     | <FALSE>
@@ -258,8 +265,10 @@ void Fragment() : {} {
 
 void ExpressionPrime() : {} {
 
-    <LBR> ExpressionPrime() <RBR>
-    | <ID> <LBR> ArgumentList() <RBR>
+    <LBR> (
+        ExpressionPrime() <RBR>
+        | ArgumentList() <RBR>
+    )
 }
 
 // reference for removing left recursion:
