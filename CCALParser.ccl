@@ -81,6 +81,7 @@ SKIP : /*** Ignoring spaces/tabs/newlines ***/ {
 SKIP : /* COMMENTS */ {
 
     "/*" { commentNesting++; } : IN_COMMENT
+    | < "//" ( ~["\r", "\n" ] )* >
 }
 
 <IN_COMMENT> SKIP : {
@@ -204,8 +205,10 @@ void ParameterList() : {} {
 
 void NempParameterList() : {} {
 
-    <ID> <COLON> Type()
-    | <ID> <COLON> Type() <COMMA> NempParameterList()
+    <ID> <COLON> Type() (
+        <COMMA> NempParameterList()
+        | {}
+    )
 }
 
 void Main() : {} {
@@ -224,8 +227,10 @@ void StatementBlock() : {} {
 
 void Statement() : {} {
 
-    <ID> <ASSIGN> Expression() <SEMIC>
-    | <ID> <LBR> ArgumentList() <RBR> <SEMIC>
+    <ID> (
+        <ASSIGN> Expression() <SEMIC>
+        | <LBR> ArgumentList() <RBR> <SEMIC>
+    )
     | <LCB> StatementBlock() <RCB>
     | <IF> Condition() <LCB> StatementBlock() <RCB> <ELSE> <LCB> StatementBlock() <RCB>
     | <WHILE> Condition() <LCB> StatementBlock() <RCB>
@@ -235,7 +240,7 @@ void Statement() : {} {
 void Expression() : {} {
 
     Fragment() (
-        BinaryArithmeticOperation() Fragment()
+        (BinaryArithmeticOperation() Fragment())
         | {}
     )
     | ExpressionPrime()
@@ -266,25 +271,29 @@ void BinaryArithmeticOperation() : {} {
     | <MINUS_SIGN>
 }
 
-void A() : {} {
-
-    BinaryArithmeticOperation() APrime()
-}
-
-void APrime() : {} {
-
-    ArgumentList()
-    | {}
-}
-
 // Fragment
+
+// void Condition() : {} {
+//
+//     <NEGATE> Condition()
+//     | <LBR> Condition() <RBR>
+//     | Expression() ComparisonOperator() Expression()
+//     | Condition() ( <OR> | <AND> ) Condition()
+// }
+
+// left recursion removal followed from notes in lectures
 
 void Condition() : {} {
 
-    <NEGATE> Condition()
-    | <LBR> Condition() <RBR>
-    | Expression() ComparisonOperator() Expression()
-    | Condition() ( <OR> | <AND> ) Condition()
+    Expression() ComparisonOperator() Expression() ConditionPrime()
+}
+
+void ConditionPrime() : {} {
+
+    <NEGATE> ConditionPrime()
+    | <LBR> ConditionPrime() <RBR>
+    | (<OR> | <AND>) ConditionPrime()
+    | {}
 }
 
 void ComparisonOperator() : {} {
