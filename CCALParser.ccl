@@ -101,6 +101,7 @@ TOKEN :  /* Keywords and punctuation */ {
     | < COLON : ":" >
     | < ASSIGN : "=" >
     | < RETURN : "return" >
+    | < MAIN : "main" >
     | < LBR : "(" >
     | < RBR : ")" >
     | < LCB : "{" >
@@ -117,9 +118,17 @@ TOKEN :  /* Keywords and punctuation */ {
     | < GTEQ : ">=" >
     | < LT : "<" >
     | < LTEQ : "<=" >
-    | < INTEGER : "int" >
-    | < BOOLEAN : "bool" >
+    | < INTEGER : "integer" >
+    | < BOOLEAN : "boolean" >
     | < VOID : "void" >
+    | < VAR : "var" >
+    | < CONST : "const" >
+    | < IF : "if" >
+    | < WHILE : "while" >
+    | < SKIPPER : "skip" >
+    | < ELSE : "else" >
+    | < TRUE : "true" >
+    | < FALSE : "false" >
 }
 
 TOKEN :  /* Numbers and identifiers */ {
@@ -187,60 +196,120 @@ void Type() : {} {
     <INTEGER> | <BOOLEAN> | <VOID>
 }
 
-void 
+void ParameterList() : {} {
+
+    NempParameterList()
+    | {}
+}
+
+void NempParameterList() : {} {
+
+    <ID> <COLON> Type()
+    | <ID> <COLON> Type() <COMMA> NempParameterList()
+}
+
+void Main() : {} {
+
+    <MAIN> <LCB>
+    DeclarationList()
+    StatementBlock()
+    <RCB>
+}
+
+void StatementBlock() : {} {
+
+    (Statement() StatementBlock())
+    | {}
+}
+
+void Statement() : {} {
+
+    <ID> <ASSIGN> Expression() <SEMIC>
+    | <ID> <LBR> ArgumentList() <RBR> <SEMIC>
+    | <LCB> StatementBlock() <RCB>
+    | <IF> Condition() <LCB> StatementBlock() <RCB> <ELSE> <LCB> StatementBlock() <RCB>
+    | <WHILE> Condition() <LCB> StatementBlock() <RCB>
+    | <SKIPPER> <SEMIC>
+}
+
+void Expression() : {} {
+
+    Fragment() (
+        BinaryArithmeticOperation() Fragment()
+        | {}
+    )
+    | ExpressionPrime()
+}
+
+void Fragment() : {} {
+
+    <ID>
+    | <MINUS_SIGN> <ID>
+    | <NUM>
+    | <TRUE>
+    | <FALSE>
+    | ExpressionPrime()
+}
+
+void ExpressionPrime() : {} {
+
+    <LBR> ExpressionPrime() <RBR>
+    | <ID> <LBR> ArgumentList() <RBR>
+}
+
+// reference for removing left recursion:
+// http://www.cs.may.ie/staff/jpower/Courses/Previous/parsing/node30.html
+
+void BinaryArithmeticOperation() : {} {
+
+    <PLUS_SIGN>
+    | <MINUS_SIGN>
+}
+
+void A() : {} {
+
+    BinaryArithmeticOperation() APrime()
+}
+
+void APrime() : {} {
+
+    ArgumentList()
+    | {}
+}
+
+// Fragment
+
+void Condition() : {} {
+
+    <NEGATE> Condition()
+    | <LBR> Condition() <RBR>
+    | Expression() ComparisonOperator() Expression()
+    | Condition() ( <OR> | <AND> ) Condition()
+}
+
+void ComparisonOperator() : {} {
+
+    <EQUAL>
+    | <NOT_EQ>
+    | <LT>
+    | <LTEQ>
+    | <GT>
+    | <GTEQ>
+}
+
+void ArgumentList() : {} {
+
+    NempArgumentList()
+    | {}
+}
+
+void NempArgumentList() : {} {
+
+    <ID>
+    | <ID> <COMMA> NempArgumentList()
+}
 
 /////////////////
-void Stm() : {} {
-
-    (SimpleStm() [<SEMIC> Stm()] )
-}
-
-void SimpleStm() : {} {
-
-      (Ident() <ASSIGN> Exp())
-    | (<PRINT> <LBR> ExpList() <RBR>)
-}
-
-void Exp() : {} {
-
-    (SimpleExp() [BinOp() Exp()]  )
-}
-
-void SimpleExp() : {} {
-
-      IdExp()
-    | NumExp()
-    | (<LBR> Stm() <COMMA> Exp() <RBR>)
-}
-
-void Ident() : {} {
-
-    <ID>
-}
-
-void IdExp() : {} {
-
-    <ID>
-}
-
-void NumExp() : {} {
-
-    <NUM>
-}
-
-void ExpList() : {} {
-
-    (Exp() [<COMMA> ExpList()] )
-}
-
-
-void BinOp() : {} {
-
-      <PLUS_SIGN>
-    | <MINUS_SIGN>
-    | <MULT_SIGN>
-    | <DIV_SIGN>
-}
 
 //
 // void Prog() : {} {
