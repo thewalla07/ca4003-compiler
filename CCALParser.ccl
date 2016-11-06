@@ -47,7 +47,7 @@ public class CCALParser {
 
         } try {
 
-            parser.Prog();
+            parser.Main();
             System.out.println("CCAL Parser: CCAL program parsed successfully.");
 
         } catch (ParseException e) {
@@ -136,8 +136,8 @@ TOKEN :  /* Numbers and identifiers */ {
 
       < NUM : (<DIGIT>)+ >
     | < #DIGIT : ["0" - "9"] >
-    | < ID : (<LETTER>)+ >
-    | < #LETTER : ["a" - "z", "A" - "Z"] >
+    | < ID : (<LETTER>)+ (<LETTER> | <DIGIT>)* >
+    | < #LETTER : ["a" - "z", "A" - "Z", "_"] >
 }
 
 
@@ -163,17 +163,18 @@ void DeclarationList() : {} {
 void Declaration() : {} {
 
     VariableDeclaration()
+    | ConstantDeclaration()
     | {}
 }
 
 void VariableDeclaration() : {} {
 
-    <VAR> <ID> <SEMIC> Type()
+    <VAR> <ID> <COLON> Type()
 }
 
 void ConstantDeclaration() : {} {
 
-    <CONST> <ID> <SEMIC> Type() <ASSIGN> Expression()
+    <CONST> <ID> <COLON> Type() <ASSIGN> Expression()
 }
 
 void FunctionList() : {} {
@@ -243,20 +244,17 @@ void Expression() : {} {
         (BinaryArithmeticOperation() Fragment())
         | {}
     )
-    | ExpressionPrime()
 }
 
 void FragExprPrime() : {} {
 
-    <ID> (
-        <LBR> ArgumentList() <RBR>
-        | ExpressionPrime()
-    )
+    <ID> ExpressionPrime()
 }
 
 void Fragment() : {} {
 
-    <MINUS_SIGN> <ID>
+    <ID>
+    | <MINUS_SIGN> <NUM>
     | <NUM>
     | <TRUE>
     | <FALSE>
@@ -323,8 +321,10 @@ void ArgumentList() : {} {
 
 void NempArgumentList() : {} {
 
-    <ID>
-    | <ID> <COMMA> NempArgumentList()
+    <ID> (
+        <COMMA> NempArgumentList()
+        | {}
+    )
 }
 
 /////////////////
