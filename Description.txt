@@ -1,0 +1,24 @@
+This is a declaration that this project has been solely my own work except elements which I have explicitly attributed to another source.
+
+StudentName: Michael Wall
+StudentNum:  13522003
+
+Description of major sections.
+
+For my project I started by using the code provided in lectures to handle the reading in of tokens. This was the code used in the SLP parser.
+
+For the lexical analysis, I used the comments recognition provided in the lecture notes also. Then I wrote out the tokens for the language as they appeared in the language specification document. For the specification of Integers, I came across a conflict relating to the specification that "Integers are represented by a string of one or more digits (‘0’-‘9’) that do not start with the digit ‘0’". This was an issue because in the sample code to be parsed at the bottom of the specification document, there is the use of the number 0. This is a string of one or more digits, starting with a 0. Here there is a contradiction. I added a special case in the definition of a number to handle this. So a valid number is a string containing the digit '0', or a string of one or more digits ('0' - '9') not starting with a '0', with the option of being negative.
+
+After this I began to build the syntax analyser. I started by converting the grammer in the language specification document into JavaCC code. Then I compiled this to find left recursion errors. In the code I have left the original version I had in comments alongside the version where I resolved the left recursion to help show my workings. Because I could not understand how to eliminate indirect left recursion from the lecture notes, I used the following online resources to learn about indirect left recursion:
+http://www.cs.may.ie/staff/jpower/Courses/Previous/parsing/node30.html
+http://www.cset.oit.edu/~yangs/cst320/lectures/grammarmod.pdf
+
+After applying the techniques in the references above to my code, I made some simple changes to remove direct left recursion as defined in lecture notes by creating "prime" non-terminals. These can be seen in FragmentPrime() and in ConditionPrime().
+
+After I had this step done, I used left factoring to solve some of the choice conflicts which arose, seen in Expression() and Fragment(). At this stage I also handled the trivial conflicts seen in Statement(), NempParameterList() etc. Some of the choice conflicts were resolved by removing production rules which had been duplicated as a result of following the techniques outlined in the references above for removing indirect left recursion. In the cases where it made logical sense, I removed choice conflicts simply by deleting the option from one of the production rules. This was because the option I deleted was handled in the other non-nerminal correctly. 
+
+Following this however left me with some conflict choices which I could not figure out how to solve. One was a choice conflict in the Condition non-terminal. The choice relates to left parentheses represented with the <LBR> token, which also occurs in Expression(). I could not see a way to apply left factoring to this or to rearrange terms to solve this issue, so I used a lookahead of 3 to bypass this issue.
+
+Once this was complete, I compiled the compiler with JavaCC, and then compile the CCALParser.java file with javac. I then ran the program as follows: $ java CCALParser compilerTest.txt
+
+The file I used to test the parser came from the language specification document.
