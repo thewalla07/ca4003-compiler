@@ -1,0 +1,428 @@
+//This is a declaration that this project has been solely my own work except elements which I have explicitly attributed to another source.
+// Student Michael Wall 13522003
+
+/*******************************
+ ***** SECTION 1 - OPTIONS *****
+ *******************************/
+
+options {
+  JAVA_UNICODE_ESCAPE = true;
+  IGNORE_CASE = true;
+  MULTI=true;
+  VISITOR=true;
+  NODE_DEFAULT_VOID=true;
+}
+
+/*********************************
+ ***** SECTION 2 - USER CODE *****
+ *********************************/
+
+// This section borrows from the lecture notes as a template for parsing tokens
+
+PARSER_BEGIN(CCALParser)
+
+import java.util.Hashtable;
+
+public class CCALParser {
+
+    public static Hashtable ST = new Hashtable();
+
+    public static void main(String args[]) {
+
+        CCALParser parser;
+
+        String temp;
+        STC temp2;
+
+        if (args.length == 0) {
+
+            System.out.println("CCAL Parser:  Reading from standard input . . .");
+            parser = new CCALParser(System.in);
+
+        } else if (args.length == 1) {
+
+            //System.out.println("CCAL Parser:  Reading from file " + args[0] + " . . .");
+
+            try {
+
+                parser = new CCALParser(new java.io.FileInputStream(args[0]));
+
+            } catch (java.io.FileNotFoundException e) {
+
+                System.out.println("CCAL Parser:  File " + args[0] + " not found.");
+                return;
+            }
+
+        } else {
+
+            System.out.println("CCAL Parser:  Usage is one of:");
+            System.out.println("         java CCALParser < inputfile");
+            System.out.println("OR");
+            System.out.println("         java CCALParser inputfile");
+            return;
+
+        } try {
+
+            SimpleNode root = parser.Program();
+            System.out.println("Abstract Syntax Tree: ");
+            root.dump("");
+
+            // System.out.println();
+            // System.out.println("Symbol Table: ");
+            //
+            // Enumeration t = ST.keys();
+            //
+            // while (t.hasMoreElements()) {
+            //     temp = (String)t.nextElement();
+            //     temp2 = (STC)ST.get(temp);
+            //     System.out.println(temp);
+            //
+            //     if (temp2.type != null) {
+            //         System.out.println(" type = " + temp2.type);
+            //     }
+            //     if (temp2.type != null) {
+            //         System.out.println(" value = " + temp2.value);
+            //     }
+            // }
+            //
+            // System.out.println();
+            // System.out.println("Program: ");
+            // PrintVisitor pv = new PrintVisitor();
+            // root.jjtAccept(pv, null);
+            //
+            // System.out.println();
+            // System.out.println("Type Checking: ");
+            // TypeCheckVisitor tc = new TypeCheckVisitor();
+            // root.jjtAccept(tc, ST);
+
+            // System.out.println("CCAL Parser: CCAL program parsed successfully.");
+
+        } catch (ParseException e) {
+
+            System.out.println(e.getMessage());
+            System.out.println("CCAL Parser:  Encountered errors during parse.");
+        }
+    }
+}
+
+PARSER_END(CCALParser)
+
+/*****************************************
+ ***** SECTION 3 - TOKEN DEFINITIONS *****
+ *****************************************/
+
+// The handling of comments borrows from the lecture notes.
+
+TOKEN_MGR_DECLS : {
+
+    static int commentNesting=0;
+}
+
+SKIP : /*** Ignoring spaces/tabs/newlines ***/ {
+
+    // We will ignore any spaces, tabs, newlines,
+    // carriage returns, or form feeds.
+      " "
+    | "\t"
+    | "\n"
+    | "\r"
+    | "\f"
+
+    // We will also ignore any comments
+    | "/*" { commentNesting++; } : IN_COMMENT
+    | < "//" ( ~["\r", "\n" ] )* >
+}
+
+<IN_COMMENT> SKIP : {
+
+      "/*" { commentNesting++; }
+    | "*/" {
+        commentNesting--;
+        if (commentNesting == 0) {
+            SwitchTo(DEFAULT);
+        }
+    }
+    | <~[]>
+}
+
+TOKEN : {
+
+    // reserved words in the language are
+    < VAR : "var" >
+    | < CONST : "const" >
+    | < RETURN : "return" >
+    | < INTEGER : "integer" >
+    | < BOOLEAN : "boolean" >
+    | < VOID : "void" >
+    | < MAIN : "main" >
+    | < IF : "if" >
+    | < ELSE : "else" >
+    | < TRUE : "true" >
+    | < FALSE : "false" >
+    | < WHILE : "while" >
+    | < SKIPPER : "skip" >
+
+    // the following are tokens in the language
+    | < COMMA : "," >
+    | < SEMIC : ";" >
+    | < COLON : ":" >
+    | < ASSIGN : "=" >
+    | < LCB : "{" >
+    | < RCB : "}" >
+    | < LBR : "(" >
+    | < RBR : ")" >
+    | < PLUS_SIGN : "+" >
+    | < MINUS_SIGN : "-" >
+    | < NEGATE : "~" >
+    | < OR : "||" >
+    | < AND : "&&" >
+    | < EQUAL : "==" >
+    | < NOT_EQ : "!=" >
+    | < LT : "<" >
+    | < LTEQ : "<=" >
+    | < GT : ">" >
+    | < GTEQ : ">=" >
+
+    // Integers are a string of one or more digits
+    // that do not start with '0', unless it is a '0'
+    // on its own. Integers can be negative.
+    | < NUM : (["0"]) | (<MINUS_SIGN> ["1" - "9"] (<DIGIT>)*) | (["1" - "9"] (<DIGIT>)*) >
+    | < #DIGIT : ["0" - "9"] >
+
+    // Ids are a string of letters, digits,
+    // or underscore starting with a letter
+    | < ID : (<LETTER>) (<LETTER> | <DIGIT> | "_")* >
+    | < #LETTER : ["a" - "z", "A" - "Z"] >
+
+    // Anything which we have not recognised so far
+    | < OTHER : ~[] >
+}
+
+/***************************
+ * SECTION 4 - THE GRAMMAR *
+ ***************************/
+
+SimpleNode Program() #PROG : {} {
+
+    // DeclarationList() FunctionList() Main()
+
+    DeclarationList() FunctionList() Main() {return jjtThis;}
+}
+
+void DeclarationList() : {} {
+
+    // (Declaration() <SEMIC> DeclarationList())
+    // | {}
+
+    (Declaration() <SEMIC> DeclarationList())
+    | {}
+}
+
+void Declaration() : {} {
+
+    // VariableDeclaration()
+    // | ConstantDeclaration()
+
+    VariableDeclaration()
+    | ConstantDeclaration()
+}
+
+void VariableDeclaration() #VAR_DECL : { } {
+
+    // <VAR> Id() <COLON> Type()
+
+    <VAR> Id() <COLON> Type()
+}
+
+void ConstantDeclaration() #CONST_DECL : { } {
+
+    // <CONST> Id() <COLON> Type() <ASSIGN> Expression()
+
+    <CONST> Id() <COLON> Type() <ASSIGN> Expression()
+}
+
+void FunctionList() : {} {
+
+    (Function() FunctionList())
+    | {}
+}
+
+void Function() #FUNC : { } {
+
+    Type() Id() <LBR> ParameterList() <RBR>
+    <LCB>
+    DeclarationList()
+    StatementBlock()
+    <RETURN> <LBR> (Expression() | {}) <RBR> <SEMIC>
+    <RCB>
+}
+
+void Type() #TYPE : {} {
+
+    // <INTEGER> | <BOOLEAN> | <VOID>
+
+    <INTEGER> { jjtThis.value = token; }
+    | <BOOLEAN> { jjtThis.value = token; }
+    | <VOID> { jjtThis.value = token; }
+}
+
+void ParameterList() : {} {
+
+    (
+        Id() <COLON> Type() (
+            <COMMA> Id() <COLON> Type()
+        )*
+    ) #PARAMLIST(>1)
+    | {}
+}
+
+
+
+void Main() #MAIN : {} {
+
+    <MAIN> <LCB>
+    DeclarationList()
+    StatementBlock()
+    <RCB>
+}
+
+void StatementBlock() : {} {
+
+    (Statement() StatementBlock())
+    | {}
+}
+
+void Statement() : {} {
+
+    (
+        Id() (
+            <ASSIGN> Expression() <SEMIC>
+            | <LBR> ArgumentList() <RBR> <SEMIC>
+        )
+    ) #ASSIGN(2)
+    | <LCB> StatementBlock() <RCB>
+    | <IF> Condition() <LCB> StatementBlock() <RCB> <ELSE> <LCB> StatementBlock() <RCB>
+    | <WHILE> Condition() <LCB> StatementBlock() <RCB>
+    | <SKIPPER> <SEMIC>
+}
+
+// First occurrence of left recursion was indirect left recursion
+
+// void Expression() : {} {
+//
+//     Fragment() BinaryArithmeticOperation() Fragment()
+//     | <LBR> Expression() <RBR>
+//     | Id() <LBR> ArgumentList() <RBR>
+//     | Fragment()
+// }
+//
+// void Fragment() : {} {
+//
+//     Id()
+//     | <MINUS_SIGN> Id()
+//     | Num()
+//     | <TRUE>
+//     | <FALSE>
+//     | Expression()
+// }
+
+
+// references for removing left recursion (direct and indirect):
+// http://www.cs.may.ie/staff/jpower/Courses/Previous/parsing/node30.html
+// http://www.cset.oit.edu/~yangs/cst320/lectures/grammarmod.pdf
+
+void Expression() : {} {
+
+    Fragment() (
+        (BinaryArithmeticOperation() Fragment()) #BINOP(>1)
+        | {}
+    )
+}
+
+void Fragment() : {} {
+    Id() (
+        <LBR> ArgumentList() <RBR> FragmentPrime()
+        | FragmentPrime()
+    )
+    | MinusSign() Id() FragmentPrime()
+    | Num()  FragmentPrime()
+    | Bool() FragmentPrime()
+    | <LBR> Expression() <RBR> FragmentPrime()
+}
+
+void FragmentPrime() : {} {
+
+    BinaryArithmeticOperation() Fragment() FragmentPrime()
+    | {}
+}
+
+void BinaryArithmeticOperation() #BINOP : {} {
+
+    <PLUS_SIGN> { jjtThis.value = token; }
+    | <MINUS_SIGN> { jjtThis.value = token; }
+}
+
+// Second occurrence was direct left recursion:
+
+// void Condition() : {} {
+//
+//     <NEGATE> Condition()
+//     | <LBR> Condition() <RBR>
+//     | Expression() ComparisonOperator() Expression()
+//     | Condition() (<OR> | <AND>) Condition()
+// }
+
+void Condition() : {} {
+    LOOKAHEAD(3)
+     <LBR> Condition() <RBR> ConditionPrime()
+    | <NEGATE> Condition() ConditionPrime()
+    | Expression() ComparisonOperator() Expression() ConditionPrime()
+}
+
+void ConditionPrime() : {} {
+
+    ((<OR>  { jjtThis.value = token; }
+        | <AND> { jjtThis.value = token; }
+    ) Condition() ConditionPrime() ) #CONDITION(>0)
+    | {}
+}
+
+void ComparisonOperator() #BOOLOP : {} {
+
+    <EQUAL> { jjtThis.value = token; }
+    | <NOT_EQ> { jjtThis.value = token; }
+    | <LT> { jjtThis.value = token; }
+    | <LTEQ> { jjtThis.value = token; }
+    | <GT> { jjtThis.value = token; }
+    | <GTEQ> { jjtThis.value = token; }
+}
+
+void ArgumentList() : {} {
+
+    (
+        Id() (
+            <COMMA> Id()
+        )*
+    ) #ARGSLIST(>1)
+    | {}
+}
+
+// Modified statements to improve readability and workflow
+// Previously these statements would not exist, leaving for example,
+// <ID> in other statements.
+void Id() #ID : {Token t;} {
+    <ID> { jjtThis.value = token; }
+}
+
+void Num() #NUM : {Token t;} {
+    <NUM> { jjtThis.value = token; }
+}
+
+void MinusSign() #NEGATIVE : {Token t;} {
+    <MINUS_SIGN> { jjtThis.value = token; }
+}
+
+void Bool() #BOOL : {Token t;} {
+    <TRUE> { jjtThis.value = token; }
+    | <FALSE> { jjtThis.value = token; }
+}
