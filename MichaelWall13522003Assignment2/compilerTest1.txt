@@ -1,0 +1,23 @@
+var i:integer;
+
+integer test_fn (x:integer, y:integer)
+{
+    var i:integer;
+    i = 2;
+    return (x);
+}
+
+void func ()
+{
+    return ();
+}
+
+main{
+    // a simple comment
+    /* a comment with /* nested /* comments */ of */ which  there are several */
+
+    var i: integer;
+
+    i = 1;
+    i = test_fn (i);
+}

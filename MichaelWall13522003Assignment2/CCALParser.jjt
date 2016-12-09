@@ -21,7 +21,7 @@ options {
 
 PARSER_BEGIN(CCALParser)
 
-import java.util.Hashtable;
+import java.util.*;
 
 public class CCALParser {
 
@@ -67,28 +67,28 @@ public class CCALParser {
             System.out.println("Abstract Syntax Tree: ");
             root.dump("");
 
-            // System.out.println();
-            // System.out.println("Symbol Table: ");
+            System.out.println();
+            System.out.println("Symbol Table: ");
+
+            Enumeration t = ST.keys();
+
+            while (t.hasMoreElements()) {
+                temp = (String)t.nextElement();
+                temp2 = (STC)ST.get(temp);
+                System.out.println(temp);
+
+                if (temp2.type != null) {
+                    System.out.println(" type = " + temp2.type);
+                }
+                if (temp2.type != null) {
+                    System.out.println(" value = " + temp2.value);
+                }
+            }
             //
-            // Enumeration t = ST.keys();
-            //
-            // while (t.hasMoreElements()) {
-            //     temp = (String)t.nextElement();
-            //     temp2 = (STC)ST.get(temp);
-            //     System.out.println(temp);
-            //
-            //     if (temp2.type != null) {
-            //         System.out.println(" type = " + temp2.type);
-            //     }
-            //     if (temp2.type != null) {
-            //         System.out.println(" value = " + temp2.value);
-            //     }
-            // }
-            //
-            // System.out.println();
-            // System.out.println("Program: ");
-            // PrintVisitor pv = new PrintVisitor();
-            // root.jjtAccept(pv, null);
+            System.out.println();
+            System.out.println("Program: ");
+            PrintVisitor pv = new PrintVisitor();
+            root.jjtAccept(pv, null);
             //
             // System.out.println();
             // System.out.println("Type Checking: ");
@@ -227,11 +227,11 @@ void Declaration() : {} {
     | ConstantDeclaration()
 }
 
-void VariableDeclaration() #VAR_DECL : { } {
+void VariableDeclaration() #VAR_DECL : { String t; String type; } {
 
     // <VAR> Id() <COLON> Type()
 
-    <VAR> Id() <COLON> Type()
+    <VAR> t = Id() <COLON> type = Type()  { ST.put(t, new STC(type, t)); }
 }
 
 void ConstantDeclaration() #CONST_DECL : { } {
@@ -257,13 +257,13 @@ void Function() #FUNC : { } {
     <RCB>
 }
 
-void Type() #TYPE : {} {
+String Type() #TYPE : {Token t;} {
 
     // <INTEGER> | <BOOLEAN> | <VOID>
 
-    <INTEGER> { jjtThis.value = token; }
-    | <BOOLEAN> { jjtThis.value = token; }
-    | <VOID> { jjtThis.value = token; }
+    t = <INTEGER> { jjtThis.value = token; return t.image;}
+    | t = <BOOLEAN> { jjtThis.value = token; return t.image;}
+    | t = <VOID> { jjtThis.value = token; return t.image;}
 }
 
 void ParameterList() : {} {
@@ -339,14 +339,14 @@ void Expression() : {} {
     )
 }
 
-void Fragment() : {} {
-    Id() (
-        <LBR> ArgumentList() <RBR> FragmentPrime()
+void Fragment() : {String t; String val;} {
+    t = Id() (
+        <LBR> ArgumentList() <RBR> FragmentPrime() { ST.put(t, new STC("function", t)); }
         | FragmentPrime()
     )
     | MinusSign() Id() FragmentPrime()
-    | Num()  FragmentPrime()
-    | Bool() FragmentPrime()
+    | t = Num()  FragmentPrime()   { ST.put(t, new STC("number", t)); }
+    | t = Bool() FragmentPrime()  { ST.put(t, new STC("boolean", t)); }
     | <LBR> Expression() <RBR> FragmentPrime()
 }
 
@@ -379,7 +379,7 @@ void Condition() : {} {
     | Expression() ComparisonOperator() Expression() ConditionPrime()
 }
 
-void ConditionPrime() : {} {
+void ConditionPrime() #CONDITION : {} {
 
     ((<OR>  { jjtThis.value = token; }
         | <AND> { jjtThis.value = token; }
@@ -410,19 +410,19 @@ void ArgumentList() : {} {
 // Modified statements to improve readability and workflow
 // Previously these statements would not exist, leaving for example,
 // <ID> in other statements.
-void Id() #ID : {Token t;} {
-    <ID> { jjtThis.value = token; }
+String Id() #ID : {Token t;} {
+    t = <ID> { jjtThis.value = token; return t.image;}
 }
 
-void Num() #NUM : {Token t;} {
-    <NUM> { jjtThis.value = token; }
+String Num() #NUM : {Token t;} {
+    t = <NUM> { jjtThis.value = token; return t.image;}
 }
 
 void MinusSign() #NEGATIVE : {Token t;} {
     <MINUS_SIGN> { jjtThis.value = token; }
 }
 
-void Bool() #BOOL : {Token t;} {
-    <TRUE> { jjtThis.value = token; }
-    | <FALSE> { jjtThis.value = token; }
+String Bool() #BOOL : {Token t;} {
+    t = <TRUE> { jjtThis.value = token; return t.image;}
+    | t = <FALSE> { jjtThis.value = token; return t.image;}
 }
